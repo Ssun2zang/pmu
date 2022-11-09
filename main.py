@@ -1,2 +1,2 @@
-print("Hello World!")
-print("!")
+import sys
+print(sys.argv)
