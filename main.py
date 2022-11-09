@@ -8,6 +8,7 @@ global lexLen
 global token
 global nextToken
 global program
+global index
 
 # 문자 유형
 LETTER = 0
@@ -38,15 +39,23 @@ def switch_func(x): # 토큰 분류용 switch 결과 반환 함수
 
 def lookup(ch): # 연산자, 괄호 조사 후 그 토큰 반환 함수
     addChar()
+    global nextToken
     nextToken = switch_func(ch)
     return nextToken
 
 def addChar():
+    global token_string
+    global nextChar
     token_string += nextChar
     pass
 
 def getChar(): # 입력으로부터 다음 번째 문자를 가져옴, 그 문자 유형 결정 함수
-    nextChar = program.pop(0)
+    global index
+    global nextChar
+    global program
+    global charClass
+    nextChar = program[index]
+    index += 1
     if ( nextChar!= EOF):
         if (nextChar.isalpha()):
             charClass = LETTER
@@ -60,11 +69,14 @@ def getChar(): # 입력으로부터 다음 번째 문자를 가져옴, 그 문�
     pass
 
 def getNonBlank(): # white-space를 반환할 때까지 getchar 호출 함수
-    while (nextChar > 32):
+    global nextChar
+    while (nextChar > " "):
         getChar()
     pass
 
 def letter():
+    global charClass
+    global nextToken
     addChar()
     getChar()
     while(charClass == LETTER or charClass == DIGIT):
@@ -73,6 +85,8 @@ def letter():
     nextToken = IDENT
 
 def digit():
+    global charClass
+    global nextToken
     addChar()
     getChar()
     while(charClass == DIGIT):
@@ -85,6 +99,8 @@ def unknown():
     getChar()
 
 def eof():
+    global nextToken
+    global token_string
     nextToken = EOF
     token_string = "EOF"
 
@@ -96,6 +112,7 @@ switch_lexical_case = {
 }
 
 def lexical():
+    global lexLen
     lexLen = 0
     getNonBlank()
     switch_lexical_case[charClass]()
@@ -112,10 +129,17 @@ def main():
             break
         strings.append(line.strip())
     file.close()    
+    global program 
     program = " ".join(strings)
+    global index
+    index = 0
     print(program)
     # program = " ".join("(sum + 47) / total")
     getChar()
+    global nextToken
+    global token_string
+    nextToken = 0  # 이거 맞나
+    token_string = ""  # 이거 맞나
     while (nextToken != EOF):
         lexical()
 
