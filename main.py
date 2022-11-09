@@ -115,10 +115,12 @@ switch_lexical_case = {
 def lexical():
     global lexLen
     lexLen = 0
+    global token_string
+    token_string = ""
     getNonBlank()
     switch_lexical_case[charClass]()
     print("Next token is {}, Next lexeme is {}".format(nextToken, token_string))
-    return nextToken
+    return nextToken, token_string
 
 
 def main():
