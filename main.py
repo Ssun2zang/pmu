@@ -6,6 +6,7 @@ global nextChar
 global lexLen
 global token
 global nextToken
+global program
 
 LETTER = 0
 DIGIT = 1
@@ -20,7 +21,7 @@ MULT_OP = 23
 DIV_OP = 24
 LEFT_PAREN = 25
 RIGHT_PAREN = 26
-EOP = -1
+EOF = -1
 
 def switch_func(x):
     return {
@@ -30,7 +31,7 @@ def switch_func(x):
         '-' : SUB_OP,
         '*' : MULT_OP,
         '/' : DIV_OP,
-    }.get(x, EOP)
+    }.get(x, EOF)
 
 def lookup(ch):
     addChar()
@@ -42,6 +43,9 @@ def addChar():
     pass
 
 def getChar():
+    nextChar = program.pop(0)
+    if ( nextChar!= EOF):
+        pass
     pass
 
 def getNonBlank():
