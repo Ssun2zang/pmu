@@ -26,7 +26,7 @@ MULT_OP = 23
 DIV_OP = 24
 LEFT_PAREN = 25
 RIGHT_PAREN = 26
-EOF = 27
+EOF = -1
 
 def switch_func(x): # 토큰 분류용 switch 결과 반환 함수
     return {
@@ -37,7 +37,7 @@ def switch_func(x): # 토큰 분류용 switch 결과 반환 함수
         '*' : MULT_OP,
         '/' : DIV_OP,
         ';' : EOF,
-    }.get(x, EOF)
+    }.get(x, 1213)
 
 def lookup(ch): # 연산자, 괄호 조사 후 그 토큰 반환 함수
     addChar()
@@ -50,7 +50,6 @@ def addChar():
     global nextChar
     global lexLen
     token_string += nextChar
-    print(token_string, "p")
     lexLen += 1
 
 def getChar(): # 입력으로부터 다음 번째 문자를 가져옴, 그 문자 유형 결정 함수
@@ -59,10 +58,8 @@ def getChar(): # 입력으로부터 다음 번째 문자를 가져옴, 그 문�
     global program
     global charClass
     nextChar = program[index]
-    print(nextChar)
-
     index += 1
-    if ( nextChar!= EOF):
+    if ( nextChar!= ";"):
         if (nextChar.isalpha()):
             charClass = LETTER
         elif (nextChar.isdigit()):
@@ -75,9 +72,8 @@ def getChar(): # 입력으로부터 다음 번째 문자를 가져옴, 그 문�
 
 def getNonBlank(): # white-space를 반환할 때까지 getchar 호출 함수
     global nextChar
-    while (nextChar > " "):
+    while (nextChar <= " "):
         getChar()
-        print("dd")
 
 def letter():
     global charClass
@@ -150,6 +146,7 @@ def main():
     global token_string
     nextToken = 0  # 이거 맞나
     token_string = ""  # 이거 맞나
+    
     while (True):
         lexical()
         if (nextToken == EOF):
