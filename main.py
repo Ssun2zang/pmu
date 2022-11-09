@@ -1,11 +1,11 @@
 import sys
 
-charClass = 0
-lexeme = ""
-nextChar = ""
-lexLen = 0
-token = 0
-nextToken = 0
+global charClass
+global lexeme
+global nextChar
+global lexLen
+global token
+global nextToken
 
 LETTER = 0
 DIGIT = 1
@@ -38,7 +38,7 @@ def lookup(ch):
     return nextToken
 
 def addChar():
-    # lexeme += nextChar
+    lexeme += nextChar
     pass
 
 def getChar():
@@ -62,7 +62,6 @@ def main():
     file.close()    
     program = " ".join(strings)
     print(program)
-    # print(lookup("+"))
 
 
 
