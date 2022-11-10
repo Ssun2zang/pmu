@@ -45,6 +45,7 @@ class Token(object):
             '-' : SUB_OP,
             '*' : MULT_OP,
             '/' : DIV_OP,
+            ':' : ASSIGN_OP,
             ';' : SEMI,
             '$' : EOF,
         }.get(x, 1213)
@@ -52,6 +53,10 @@ class Token(object):
     def lookup(self, ch): # 연산자, 괄호 조사 후 그 토큰 반환 함수
         self.addChar()
         self.nextToken = self.switch_func(ch)
+        if (self.nextToken == ASSIGN_OP): # ':=' 지정
+            self.nextChar = self.program[self.index]
+            self.index += 1
+            self.addChar()
         return self.nextToken
 
     def addChar(self):

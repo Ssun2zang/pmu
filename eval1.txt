@@ -1,1 +1,1 @@
-(sum + 47) / total
+sum := (sum + 47) / total
