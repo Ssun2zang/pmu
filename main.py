@@ -26,7 +26,9 @@ MULT_OP = 23
 DIV_OP = 24
 LEFT_PAREN = 25
 RIGHT_PAREN = 26
-EOF = -1
+SEMI = 27
+EOF = 28
+ERROR = -1
 
 def switch_func(x): # 토큰 분류용 switch 결과 반환 함수
     return {
@@ -36,7 +38,8 @@ def switch_func(x): # 토큰 분류용 switch 결과 반환 함수
         '-' : SUB_OP,
         '*' : MULT_OP,
         '/' : DIV_OP,
-        ';' : EOF,
+        ';' : SEMI,
+        '$' : EOF,
     }.get(x, 1213)
 
 def lookup(ch): # 연산자, 괄호 조사 후 그 토큰 반환 함수
@@ -59,7 +62,7 @@ def getChar(): # 입력으로부터 다음 번째 문자를 가져옴, 그 문�
     global charClass
     nextChar = program[index]
     index += 1
-    if ( nextChar!= ";"):
+    if ( nextChar!= "$"):
         if (nextChar.isalpha()):
             charClass = LETTER
         elif (nextChar.isdigit()):
@@ -134,6 +137,7 @@ def main():
     file.close()    
     global program 
     program = " ".join(strings)  # 프로그램 만들기
+    program += "$"
     global index
     index = 0
     global length
