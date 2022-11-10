@@ -17,6 +17,17 @@ SEMI = 27
 EOF = 28
 ERROR = -1
 
+# 문법에 사용
+PROG = 30
+S = 31
+ST = 32
+E = 33
+T = 34
+F = 35
+T_T = 36
+F_T = 37
+
+
 
 # 어휘 분석용 클래스
 class Token(object):
@@ -125,3 +136,25 @@ def make_string(filename):
     program = " ".join(strings)  # 프로그램 만들기
     program += "$"
     return program
+
+
+class Grammar(object):
+    def __init__(self):
+        self.followTable = {
+            PROG : [EOF],
+            S : [EOF],
+            ST : [SEMI, EOF],
+            E : [RIGHT_PAREN, SEMI, EOF],
+            T : [T_T, SEMI, EOF],
+            F : [F_T, SEMI, EOF],
+            T_T : [SEMI, EOF],
+            F_T : [SEMI, EOF]
+        }
+
+        self.Hashmap = []
+    
+    def checkFollow(self, nt, tok):
+        if (tok not in self.followTable[nt]):
+            print("ERROR")
+            pass
+    
