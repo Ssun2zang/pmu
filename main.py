@@ -1,4 +1,5 @@
 import sys
+from Parsing import *
 
 # 전역 변수 선언
 global charClass
@@ -127,35 +128,14 @@ def lexical():
 
 
 def main():
-    strings = []
-    file = open(sys.argv[1], "r")
-    while True:
-        line = file.readline()
-        if not line:
-            break
-        strings.append(line.strip())
-    file.close()    
-    global program 
-    program = " ".join(strings)  # 프로그램 만들기
-    program += "$"
-    global index
-    index = 0
-    global length
-    length = len(program)
-    print(program)
+    program = make_string(sys.argv[1])
+    T = Token(program)
+    T.length = len(program)
+    T.getChar()
 
-
-    getChar()
-
-
-    global nextToken
-    global token_string
-    nextToken = 0  # 이거 맞나
-    token_string = ""  # 이거 맞나
-    
-    while (True):
-        lexical()
-        if (nextToken == EOF):
+    while(True):
+        T.lexical()
+        if (T.nextToken == EOF):
             break
 
 
