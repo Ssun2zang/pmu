@@ -144,13 +144,19 @@ class Grammar(object):
             'ID' : 0,
             'CONST' : 0,
             'OP' : 0,
-            ERROR : "OK",
+            'ERROR' : "OK",
+        }
+        # self.err_state = 0 # 0:OK, 1:Warning, 2:Error
+
+        self.error_table = {
+            1 : "중복 연산자",
+            2 : "정의되지 않은 변수 참조",
         }
         self.symbol_table = { }
     
     def checkFollow(self, ident):
         if (ident not in self.symbol_table):
-            print("ERROR")
+            # print("ERROR")
             return 0
         return 1
     
@@ -163,6 +169,11 @@ class Grammar(object):
     def getval(self, ident):
         if (self.checkFollow(ident)):
             return self.symbol_table[ident]
+        else:
+            self.stmt_anly['ERROR'] = "(Error)\"정의되지 않은 변수({})가 참조됨\"".format(ident)
+            self.err_state = 2
+            self.assignident(ident, "Unknown")
+            return "Unknown"
 
     def reset(self):
         self.stmt_anly = {
@@ -184,7 +195,7 @@ class Parser(object):
         self.stmts()
         print("Result==>", end=' ')
         for key, value in self.G.symbol_table.items():
-            print("{} : {};".format(key, value), end=" ")
+            print("{}:{};".format(key, value), end=" ")
 
     def stmts(self): # <stmts> -> <stmt> | <stmt><semi><stmts>
         self.stmt()
@@ -211,7 +222,6 @@ class Parser(object):
             self.G.assignident(ident_name, val)
             self._stmt += ";"
             print(self._stmt)
-            print(self.G.stmt_anly)
             print("ID: {}; CONST: {}; OP: {};".format(self.G.stmt_anly['ID'], self.G.stmt_anly['CONST'], self.G.stmt_anly['OP']))
             print(self.G.stmt_anly['ERROR'])
         else:
@@ -222,23 +232,32 @@ class Parser(object):
         val = self.term() # parse first term
         if (self.T.nextToken == ADD_OP or self.T.nextToken == SUB_OP):
             rval, isadd = self.term_tail()
+            if (val == "Unknown" or rval == "Unknown"): # 에러 처리
+                return "Unknown"
             if (isadd):
                 val += rval
             else:
                 val -= rval
+        if (val == "Unknown"): # 에러 처리
+            return "Unknown"
         # print("ex끝")
         return val
 
 
     def term(self): # <term> -> <factor><factor_tail>
         val = self.factor()
+
         if (self.T.nextToken == MULT_OP or self.T.nextToken == DIV_OP):
             rval, ismult = self.factor_tail()
+            if (val == "Unknown" or rval == "Unknown"): # 에러 처리
+                return "Unknown"
             if (ismult):
                 val *= rval
             else:
                 val /= rval
         # print("term끝")
+        if (val == "Unknown"): # 에러 처리
+            return "Unknown"
         return val
 
     def factor(self): # <factor> -> <left_paren><expr><rigth_paren> | <ident> | <const>
@@ -282,6 +301,9 @@ class Parser(object):
             rval = 0
             if (self.T.nextToken == ADD_OP or self.T.nextToken == SUB_OP):
                 rval, isadd = self.term_tail()
+            
+            if (val == "Unknown" or rval == "Unknown"): # 에러 처리
+                return "Unknown", isadd
             if(isadd):
                 val += rval
             else:
@@ -298,6 +320,10 @@ class Parser(object):
             rval = 1
             if (self.T.nextToken == MULT_OP or self.T.nextToken == DIV_OP):
                 rval, ismult = self.factor_tail()
+
+            if (val == "Unknown" or rval == "Unknown"): # 에러 처리
+                return "Unknown", ismult
+
             if(ismult):
                 val *= rval
             else:
