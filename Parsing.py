@@ -158,3 +158,76 @@ class Grammar(object):
             print("ERROR")
             pass
     
+class Parser(object):
+    def __init__(self, program):
+        self.T = Token(program)
+        pass
+
+    def expr(self): # <expr> -> <term><term_tail>
+        print("Expr시작")
+        self.term() # parse first term
+        self.term_tail()
+        print("Expr끝")
+
+    def term(self): # <term> -> <factor><factor_tail>
+        print("term 시작")
+        self.factor()
+        self.factor_tail()
+        print("term 끝")
+
+    def factor(self): # <factor> -> <left_paren><expr><rigth_paren> | <ident> | <const>
+        print("factor 시작")
+        if (self.T.nextToken == IDENT or self.T.nextToken == INT_LIT):
+            self.T.lexical()
+        else:
+            if (self.T.nextToken == LEFT_PAREN):
+                self.T.lexical()
+                self.expr()
+                if (self.T.nextToken == RIGHT_PAREN):
+                    self.T.lexical()
+                else:
+                    print(self.T.nextToken)
+                    print("오류 발생") # 수정
+                    return
+            else:
+                print(self.T.nextToken)
+                print("오류발생")
+                return
+        print("factor 끝")
+
+    def term_tail(self):
+        print("term_tail 시작")
+        if (self.T.nextToken == ADD_OP):
+                self.add_op()
+                self.term()
+                self.term_tail()
+        else:
+            return
+
+        print("term_tail 끝")
+        pass
+        
+
+    def factor_tail(self):
+        print("factor_tail 시작")
+        if (self.T.nextToken == MULT_OP):
+                self.mult_op()
+                self.factor()
+                self.factor_tail()
+        else:
+            return
+        print("factor_tail 끝")
+        pass
+
+    def add_op(self):
+        print("add_op 시작")
+        self.T.lexical()
+        print("add_op 끝")
+
+    def mult_op(self):
+        print("mult_op 시작")
+        self.T.lexical()
+        print("mult_op 끝")
+
+            
+
