@@ -1,4 +1,7 @@
 # 문자 유형 (charClass 값)
+from ast import Expr
+
+
 LETTER = 0
 DIGIT = 1
 UNKNOWN = 99
@@ -146,7 +149,6 @@ class Grammar(object):
             'OP' : 0,
             'ERROR' : "OK",
         }
-        # self.err_state = 0 # 0:OK, 1:Warning, 2:Error
 
         self.error_table = {
             1 : "중복 연산자",
@@ -171,7 +173,6 @@ class Grammar(object):
             return self.symbol_table[ident]
         else:
             self.stmt_anly['ERROR'] = "(Error)\"정의되지 않은 변수({})가 참조됨\"".format(ident)
-            self.err_state = 2
             self.assignident(ident, "Unknown")
             return "Unknown"
 
@@ -224,8 +225,6 @@ class Parser(object):
             print(self._stmt)
             print("ID: {}; CONST: {}; OP: {};".format(self.G.stmt_anly['ID'], self.G.stmt_anly['CONST'], self.G.stmt_anly['OP']))
             print(self.G.stmt_anly['ERROR'])
-        else:
-            print("오류발생")
 
     def expr(self): # <expr> -> <term><term_tail>
         # print("ex시작")
@@ -286,7 +285,7 @@ class Parser(object):
                     return val
                 else:
                     print(self.T.nextToken)
-                    print("오류 발생") # 수정
+                    print("오류 발생") # 수정 ###########
                     return
             else:
                 print(self.T.nextToken)
@@ -297,6 +296,14 @@ class Parser(object):
         if (self.T.nextToken == ADD_OP or self.T.nextToken == SUB_OP):
             self.G.cnt_stmt_anly('OP')
             isadd = self.add_op()
+            if (self.T.nextToken not in [IDENT, INT_LIT, LEFT_PAREN]):
+                if (self.T.token_string == self._stmt[-1]): # 중복 연산자 삭제
+                    self.G.stmt_anly['ERROR'] = "(Warning)\"중복 연산자({}) 제거\"".format(self._stmt[-1])
+
+                    while(self.T.token_string == self._stmt[-1]):
+                        self.T.lexical()
+                else:
+                    pass  #######수정
             val = self.term()
             rval = 0
             if (self.T.nextToken == ADD_OP or self.T.nextToken == SUB_OP):
@@ -316,6 +323,11 @@ class Parser(object):
         if (self.T.nextToken == MULT_OP or self.T.nextToken == DIV_OP):
             self.G.cnt_stmt_anly('OP')
             ismult = self.mult_op()
+            if (self.T.nextToken not in [IDENT, INT_LIT, LEFT_PAREN]):
+                if (self.T.token_string == self._stmt[-1]): # 중복 연산자 삭제
+                    self.T.lexical()
+                else:
+                    pass  #######수정
             val = self.factor()
             rval = 1
             if (self.T.nextToken == MULT_OP or self.T.nextToken == DIV_OP):
@@ -346,7 +358,4 @@ class Parser(object):
         if (token == MULT_OP):
             return 1
         else:
-            return 0
-
-            
-
+            return 0 
