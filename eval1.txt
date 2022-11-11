@@ -1,1 +1,2 @@
-(sum + 47 ) / total
+oper1 := 1;
+oper2 := (oper1 * 3) + 2

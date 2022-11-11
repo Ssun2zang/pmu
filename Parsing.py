@@ -140,51 +140,124 @@ def make_string(filename):
 
 class Grammar(object):
     def __init__(self):
-        self.followTable = {
-            PROG : [EOF],
-            S : [EOF],
-            ST : [SEMI, EOF],
-            E : [RIGHT_PAREN, SEMI, EOF],
-            T : [T_T, SEMI, EOF],
-            F : [F_T, SEMI, EOF],
-            T_T : [SEMI, EOF],
-            F_T : [SEMI, EOF]
+        self.stmt_anly = {
+            'ID' : 0,
+            'CONST' : 0,
+            'OP' : 0,
+            'assgin' : 0,
+            ERROR : "OK",
+        }
+        self.symbol_table = { }
+    
+    def checkFollow(self, ident):
+        if (ident not in self.symbol_table):
+            print(ident, "ㅇㅇ")
+            print("ERROR")
+            return 0
+        return 1
+    
+    def addident(self, ident, val):
+        self.symbol_table[ident] = val
+
+    def cnt_stmt_anly(self, type):
+        self.stmt_anly[type] += 1
+
+    def assignval(self, op, val):
+        pass
+
+    def getval(self, ident):
+        if (self.checkFollow(ident)):
+            return self.symbol_table[ident]
+
+    def reset(self):
+        self.stmt_anly = {
+            'ID' : 0,
+            'CONST' : 0,
+            'OP' : 0,
+            'assgin' : 0,
+            ERROR : "OK",
         }
 
-        self.Hashmap = []
-    
-    def checkFollow(self, nt, tok):
-        if (tok not in self.followTable[nt]):
-            print("ERROR")
-            pass
     
 class Parser(object):
     def __init__(self, program):
         self.T = Token(program)
+        self.G = Grammar()
         pass
 
+    def prog(self):
+        self.stmts()
+
+    def stmts(self): # <stmts> -> <stmt> | <stmt><semi><stmts>
+        self.stmt()
+        if (self.T.nextToken == SEMI):
+            self.T.lexical()
+            self.stmts()
+        
+
+    def stmt(self): # <stmt> -> <ident><assign_op><expr>
+        if (self.T.nextToken == IDENT):
+            ident_name = self.T.token_string
+            self.T.lexical()
+            if (self.T.nextToken == ASSIGN_OP):
+                    self.T.lexical()
+            else:
+                print("오류 발생") # 수정
+                return
+            val = self.expr()
+            print(ident_name, val)
+            self.G.addident(ident_name, val)
+            print("dd")
+            print(self.G.symbol_table)
+
+        else:
+            print("오류발생")
+
     def expr(self): # <expr> -> <term><term_tail>
-        print("Expr시작")
-        self.term() # parse first term
-        self.term_tail()
-        print("Expr끝")
+        # print("ex시작")
+        val = self.term() # parse first term
+        if (self.T.nextToken == ADD_OP or self.T.nextToken == SUB_OP):
+            rval, isadd = self.term_tail()
+            print(val, rval, "오류")
+            if (isadd):
+                val += rval
+            else:
+                val -= rval
+        # print("ex끝")
+        return val
+
 
     def term(self): # <term> -> <factor><factor_tail>
-        print("term 시작")
-        self.factor()
-        self.factor_tail()
-        print("term 끝")
+        val = self.factor()
+        if (self.T.nextToken == MULT_OP or self.T.nextToken == DIV_OP):
+            rval, ismult = self.factor_tail()
+            if (ismult):
+                val *= rval
+            else:
+                val /= rval
+        # print("term끝")
+        return val
 
     def factor(self): # <factor> -> <left_paren><expr><rigth_paren> | <ident> | <const>
-        print("factor 시작")
-        if (self.T.nextToken == IDENT or self.T.nextToken == INT_LIT):
+        # print("factor시작")
+        if (self.T.nextToken == IDENT):
+            print(self.T.token_string, "d")
+            rval = self.T.token_string
             self.T.lexical()
+            val = self.G.getval(rval)
+            print(val, "냥")
+            return val
+        elif(self.T.nextToken == INT_LIT):
+            rval = self.T.token_string
+            self.T.lexical()
+            return int(rval)
         else:
             if (self.T.nextToken == LEFT_PAREN):
                 self.T.lexical()
-                self.expr()
+                val = self.expr()
                 if (self.T.nextToken == RIGHT_PAREN):
                     self.T.lexical()
+                    return val
                 else:
                     print(self.T.nextToken)
                     print("오류 발생") # 수정
@@ -193,41 +266,54 @@ class Parser(object):
                 print(self.T.nextToken)
                 print("오류발생")
                 return
-        print("factor 끝")
+        # print("factor끝")
 
     def term_tail(self):
-        print("term_tail 시작")
-        if (self.T.nextToken == ADD_OP):
-                self.add_op()
-                self.term()
-                self.term_tail()
-        else:
-            return
-
-        print("term_tail 끝")
-        pass
+        if (self.T.nextToken == ADD_OP or self.T.nextToken == SUB_OP):
+            isadd = self.add_op()
+            val = self.term()
+            rval = 0
+            if (self.T.nextToken == ADD_OP or self.T.nextToken == SUB_OP):
+                rval, isadd = self.term_tail()   
+            print(val, rval, "고")
+            if(isadd):
+                val += rval
+            else:
+                val -= rval
+            return val, isadd
+        
         
 
     def factor_tail(self):
-        print("factor_tail 시작")
-        if (self.T.nextToken == MULT_OP):
-                self.mult_op()
-                self.factor()
-                self.factor_tail()
-        else:
-            return
-        print("factor_tail 끝")
-        pass
+        # print("ft시작")
+        if (self.T.nextToken == MULT_OP or self.T.nextToken == DIV_OP):
+            ismult = self.mult_op()
+            val = self.factor()
+            rval = 1
+            if (self.T.nextToken == MULT_OP or self.T.nextToken == DIV_OP):
+                rval, ismult = self.factor_tail()   
+            print(val, rval, ismult, "뚜")
+            if(ismult):
+                val *= rval
+            else:
+                val /= rval
+            return val, ismult
 
     def add_op(self):
-        print("add_op 시작")
+        token = self.T.nextToken
         self.T.lexical()
-        print("add_op 끝")
+        if (token == ADD_OP):
+            return 1
+        else:
+            return 0
 
     def mult_op(self):
-        print("mult_op 시작")
+        token = self.T.nextToken
         self.T.lexical()
-        print("mult_op 끝")
+        if (token == MULT_OP):
+            return 1
+        else:
+            return 0
 
             
 

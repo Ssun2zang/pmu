@@ -20,7 +20,7 @@ def main():
     P.T.length = len(program)
     P.T.getChar()
     P.T.lexical()
-    P.expr()
+    P.prog()
 
 if __name__ == "__main__":
     main()
