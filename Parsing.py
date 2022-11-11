@@ -169,7 +169,7 @@ class Grammar(object):
             'ID' : 0,
             'CONST' : 0,
             'OP' : 0,
-            'ERROR' : "OK",
+            'ERROR' : "(OK)",
         }
 
     
@@ -182,6 +182,9 @@ class Parser(object):
 
     def prog(self):
         self.stmts()
+        print("Result==>", end=' ')
+        for key, value in self.G.symbol_table.items():
+            print("{} : {};".format(key, value), end=" ")
 
     def stmts(self): # <stmts> -> <stmt> | <stmt><semi><stmts>
         self.stmt()
@@ -196,19 +199,21 @@ class Parser(object):
         if (self.T.nextToken == IDENT):
             ident_name = self.T.token_string
             self.G.cnt_stmt_anly('ID')
-            self._stmt += self.T.nextToken
+            self._stmt += self.T.token_string
             self.T.lexical()
             if (self.T.nextToken == ASSIGN_OP):
-                    self._stmt += self.T.nextToken
+                    self._stmt += self.T.token_string
                     self.T.lexical()
             else:
                 print("오류 발생") # 수정
                 return
             val = self.expr()
             self.G.assignident(ident_name, val)
-            # print(self.G.symbol_table)
+            self._stmt += ";"
             print(self._stmt)
             print(self.G.stmt_anly)
+            print("ID: {}; CONST: {}; OP: {};".format(self.G.stmt_anly['ID'], self.G.stmt_anly['CONST'], self.G.stmt_anly['OP']))
+            print(self.G.stmt_anly['ERROR'])
         else:
             print("오류발생")
 
@@ -241,23 +246,23 @@ class Parser(object):
         if (self.T.nextToken == IDENT):
             self.G.cnt_stmt_anly('ID')
             rval = self.T.token_string
-            self._stmt += self.T.nextToken
+            self._stmt += self.T.token_string
             self.T.lexical()
             val = self.G.getval(rval)
             return val
         elif(self.T.nextToken == INT_LIT):
             self.G.cnt_stmt_anly('CONST')
             rval = self.T.token_string
-            self._stmt += self.T.nextToken
+            self._stmt += self.T.token_string
             self.T.lexical()
             return int(rval)
         else:
             if (self.T.nextToken == LEFT_PAREN):
-                self._stmt += self.T.nextToken
+                self._stmt += self.T.token_string
                 self.T.lexical()
                 val = self.expr()
                 if (self.T.nextToken == RIGHT_PAREN):
-                    self._stmt += self.T.nextToken
+                    self._stmt += self.T.token_string
                     self.T.lexical()
                     return val
                 else:
@@ -301,7 +306,7 @@ class Parser(object):
 
     def add_op(self):
         token = self.T.nextToken
-        self._stmt += self.T.nextToken
+        self._stmt += self.T.token_string
         self.T.lexical()
         if (token == ADD_OP):
             return 1
@@ -310,7 +315,7 @@ class Parser(object):
 
     def mult_op(self):
         token = self.T.nextToken
-        self._stmt += self.T.nextToken
+        self._stmt += self.T.token_string
         self.T.lexical()
         if (token == MULT_OP):
             return 1
