@@ -1,6 +1,4 @@
 # 문자 유형 (charClass 값)
-from ast import Expr
-
 
 LETTER = 0
 DIGIT = 1
@@ -62,7 +60,7 @@ class Token(object):
             ':' : ASSIGN_OP,
             ';' : SEMI,
             '$' : EOF,
-        }.get(x, 1213)
+        }.get(x, SEMI)
 
     def lookup(self, ch): # 연산자, 괄호 조사 후 그 토큰 반환 함수
         self.addChar()
@@ -147,28 +145,30 @@ class Grammar(object):
             'ID' : 0,
             'CONST' : 0,
             'OP' : 0,
-            'ERROR' : "OK",
+            'ERROR' : "OK", # 에러 메시지 저장
         }
 
-        self.error_table = {
+        self.error_table = { # 관리 에러 목록
             1 : "중복 연산자",
             2 : "정의되지 않은 변수 참조",
+            3 : "잘못된 연산자 사용",
+            4 : ":= 추가",
+            5 : ") 추가"
         }
-        self.symbol_table = { }
+        self.symbol_table = { } # ident 값 저장
     
-    def checkFollow(self, ident):
+    def checkFollow(self, ident): # symbol_table에 정의되었는지 확인
         if (ident not in self.symbol_table):
-            # print("ERROR")
             return 0
         return 1
     
-    def assignident(self, ident, val):
+    def assignident(self, ident, val): # symbol_table에 변수-value 추가
         self.symbol_table[ident] = val
 
-    def cnt_stmt_anly(self, type):
+    def cnt_stmt_anly(self, type): # id, const, op 1 추가
         self.stmt_anly[type] += 1
 
-    def getval(self, ident):
+    def getval(self, ident): # symbol_table에 정의된 변수 값 가져오기, 정의되지 않은 경우 Unknown 값으로 저장 및 리턴
         if (self.checkFollow(ident)):
             return self.symbol_table[ident]
         else:
@@ -176,7 +176,7 @@ class Grammar(object):
             self.assignident(ident, "Unknown")
             return "Unknown"
 
-    def reset(self):
+    def reset(self): # stmt가 바뀔 때 reset
         self.stmt_anly = {
             'ID' : 0,
             'CONST' : 0,
@@ -189,10 +189,9 @@ class Parser(object):
     def __init__(self, program):
         self.T = Token(program)
         self.G = Grammar()
-        self._stmt = ""
-        pass
+        self._stmt = ""  # stmt 내용 저장
 
-    def prog(self):
+    def prog(self): # <prog> -> <stmts>
         self.stmts()
         print("Result==>", end=' ')
         for key, value in self.G.symbol_table.items():
@@ -207,28 +206,33 @@ class Parser(object):
 
     def stmt(self): # <stmt> -> <ident><assign_op><expr>
         self.G.reset()
-        self._stmt = ""
-        if (self.T.nextToken == IDENT):
-            ident_name = self.T.token_string
-            self.G.cnt_stmt_anly('ID')
-            self._stmt += self.T.token_string
-            self.T.lexical()
-            if (self.T.nextToken == ASSIGN_OP):
-                    self._stmt += self.T.token_string
-                    self.T.lexical()
-            else:
-                print("오류 발생") # 수정
-                return
-            val = self.expr()
-            self.G.assignident(ident_name, val)
+        try: 
+            self._stmt = ""
+            if (self.T.nextToken == IDENT):
+                ident_name = self.T.token_string
+                self.G.cnt_stmt_anly('ID')
+                self._stmt += self.T.token_string
+                self.T.lexical()
+                if (self.T.nextToken == ASSIGN_OP):
+                        self._stmt += self.T.token_string
+                        self.T.lexical()
+                else:
+                    self.G.stmt_anly['ERROR'] = "(Warning)\":= 기호 추가\""
+                    self._stmt += ":="
+                val = self.expr()
+                self.G.assignident(ident_name, val)
+        except:
+            self.G.stmt_anly['ERROR'] = "(Error) 수정할 수 없는 에러 발생"
+            if (ident_name):
+                self.G.assignident(ident_name, "Unknown")
+        finally:
             self._stmt += ";"
             print(self._stmt)
             print("ID: {}; CONST: {}; OP: {};".format(self.G.stmt_anly['ID'], self.G.stmt_anly['CONST'], self.G.stmt_anly['OP']))
             print(self.G.stmt_anly['ERROR'])
 
     def expr(self): # <expr> -> <term><term_tail>
-        # print("ex시작")
-        val = self.term() # parse first term
+        val = self.term()
         if (self.T.nextToken == ADD_OP or self.T.nextToken == SUB_OP):
             rval, isadd = self.term_tail()
             if (val == "Unknown" or rval == "Unknown"): # 에러 처리
@@ -254,28 +258,26 @@ class Parser(object):
                 val *= rval
             else:
                 val /= rval
-        # print("term끝")
         if (val == "Unknown"): # 에러 처리
             return "Unknown"
         return val
 
     def factor(self): # <factor> -> <left_paren><expr><rigth_paren> | <ident> | <const>
-        # print("factor시작")
-        if (self.T.nextToken == IDENT):
+        if (self.T.nextToken == IDENT): # <ident>
             self.G.cnt_stmt_anly('ID')
             rval = self.T.token_string
             self._stmt += self.T.token_string
             self.T.lexical()
             val = self.G.getval(rval)
             return val
-        elif(self.T.nextToken == INT_LIT):
+        elif(self.T.nextToken == INT_LIT): # <const>
             self.G.cnt_stmt_anly('CONST')
             rval = self.T.token_string
             self._stmt += self.T.token_string
             self.T.lexical()
             return int(rval)
         else:
-            if (self.T.nextToken == LEFT_PAREN):
+            if (self.T.nextToken == LEFT_PAREN): # <left_paren><expr><rigth_paren>
                 self._stmt += self.T.token_string
                 self.T.lexical()
                 val = self.expr()
@@ -284,15 +286,16 @@ class Parser(object):
                     self.T.lexical()
                     return val
                 else:
-                    print(self.T.nextToken)
-                    print("오류 발생") # 수정 ###########
+                    self.G.stmt_anly['ERROR'] = "(Warning)\") 기호 추가\""
+                    self._stmt += ")"
                     return
             else:
-                print(self.T.nextToken)
-                print("오류발생")
+                while(self.T.nextToken not in [IDENT, INT_LIT, LEFT_PAREN, SEMI]):
+                    self.G.stmt_anly['ERROR'] = "(Warning)\"잘못된 연산 형식으로 다음 연산자 제거\"".format(self._stmt[-1])
+                    self.T.lexical()
                 return
 
-    def term_tail(self):
+    def term_tail(self): # <term_tail> -> <add_op><term><term_tail> | E
         if (self.T.nextToken == ADD_OP or self.T.nextToken == SUB_OP):
             self.G.cnt_stmt_anly('OP')
             isadd = self.add_op()
@@ -302,8 +305,9 @@ class Parser(object):
 
                     while(self.T.token_string == self._stmt[-1]):
                         self.T.lexical()
-                else:
-                    pass  #######수정
+                while(self.T.nextToken not in [IDENT, INT_LIT, LEFT_PAREN, SEMI]):
+                    self.G.stmt_anly['ERROR'] = "(Warning)\"잘못된 연산 형식으로 다음 연산자 제거\"".format(self._stmt[-1])
+                    self.T.lexical()
             val = self.term()
             rval = 0
             if (self.T.nextToken == ADD_OP or self.T.nextToken == SUB_OP):
@@ -316,18 +320,20 @@ class Parser(object):
             else:
                 val -= rval
             return val, isadd
-        
-        
 
-    def factor_tail(self):
+    def factor_tail(self): # <factor_tail> -> <mult_op><factor><factor_tail> | E
         if (self.T.nextToken == MULT_OP or self.T.nextToken == DIV_OP):
             self.G.cnt_stmt_anly('OP')
             ismult = self.mult_op()
             if (self.T.nextToken not in [IDENT, INT_LIT, LEFT_PAREN]):
                 if (self.T.token_string == self._stmt[-1]): # 중복 연산자 삭제
+                    self.G.stmt_anly['ERROR'] = "(Warning)\"중복 연산자({}) 제거\"".format(self._stmt[-1])
+                    while(self.T.token_string == self._stmt[-1]):
+                        self.T.lexical()
+                while(self.T.nextToken not in [IDENT, INT_LIT, LEFT_PAREN]):
+                    self.G.stmt_anly['ERROR'] = "(Warning)\"잘못된 연산 형식으로 다음 연산자 제거\"".format(self._stmt[-1])
                     self.T.lexical()
-                else:
-                    pass  #######수정
+            
             val = self.factor()
             rval = 1
             if (self.T.nextToken == MULT_OP or self.T.nextToken == DIV_OP):
@@ -342,7 +348,7 @@ class Parser(object):
                 val /= rval
             return val, ismult
 
-    def add_op(self):
+    def add_op(self): # <add_op> -> + | -
         token = self.T.nextToken
         self._stmt += self.T.token_string
         self.T.lexical()
@@ -351,7 +357,7 @@ class Parser(object):
         else:
             return 0
 
-    def mult_op(self):
+    def mult_op(self): # <mult_op> -> * | /
         token = self.T.nextToken
         self._stmt += self.T.token_string
         self.T.lexical()
