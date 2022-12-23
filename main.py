@@ -1,5 +1,5 @@
 import sys
-from Parsing import *
+from Programming import *
 
 def main():
     program = make_string(sys.argv[1])
@@ -7,8 +7,7 @@ def main():
     P.T.length = len(program)
     P.T.getChar()
     P.T.lexical()
-    P.prog()
-    P.G.printST()
+    P.start()
 
 if __name__ == "__main__":
     main()

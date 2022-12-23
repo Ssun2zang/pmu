@@ -38,6 +38,7 @@ class AR(object):
 
 
 
+
 # 어휘 분석용 클래스
 class Token(object):
     def __init__(self, program):
@@ -87,7 +88,7 @@ class Token(object):
         self.nextChar = self.program[self.index]
         self.index += 1
         if ( self.nextChar!= "$"):
-            if (self.nextChar.isalpha()):
+            if (self.nextChar.isalpha() or self.nextChar == "_"):
                 self.charClass = LETTER
             elif (self.nextChar.isdigit()):
                 self.charClass = DIGIT
@@ -376,3 +377,4 @@ class Parser(object):
             return 1
         else:
             return 0 
+

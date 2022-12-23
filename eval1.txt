@@ -1,3 +1,15 @@
-operand1 := 3 ;
-operand2 := operand1 + + 2 ;
-target := operand1 + operand2 * 3
+first {
+variable a, b, c;
+call second;
+p;
+}
+second {
+variable x, a;
+b;
+print_ari;
+q;
+}
+main {
+variable p, q;
+call first;
+}

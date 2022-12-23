@@ -13,6 +13,7 @@ RIGHT_BRACE = 13
 SEMI = 14
 COMMA = 15
 EOF = 16
+REF = 17
 ERROR = -1
 
 # 에약어
@@ -22,33 +23,20 @@ CALL = 31
 VARIABLE = 32
 
 
-
-
-# class AR(object):
-#     def __init__(self, Fname, RA, DL):
-#         self.ARI = []
-#         self.Fname = Fname
-#         self.ARI.append(RA)
-#         self.ARI.append(DL)
-#         self.top = 1
-
-#     def addvar(self, *LV):
-#         for vari in LV:
-#             self.ARI.append(vari)
-#             self.top +=1
-
-#     def printari(self):
-#         print(self.Fname+":", end = " ")
-#         for i in range(1, len(self.top)-1):
-#             print("Local variable: " + self.ARI[-i])
-#         if (self.Fname != "main"):
-#             print("Dynamic Link: " + self.ARI[1])
-#             print("Return Address: " + self.ARI[0][0] + ": " + self.ARI[0][1])
-
-#     def getfname(self):
-#         return self.Fname
+def make_string(filename):
+    strings = []
+    file = open(filename, "r")
+    while True:
+        line = file.readline()
+        if not line:
+            break
+        strings.append(line.strip())
+    file.close() 
+    program = " ".join(strings)  # 프로그램 만들기
+    program += "$"
+    return program
     
-
+# Run Time Stack
 class RTstack(object):
     def __init__(self):
         self.stack=[]
@@ -116,6 +104,13 @@ class Token(object):
         self.length = 0
         self.token = 0
 
+        self.switch_lexical_case = {  # 문자 유형에 따른 함수 매칭
+        LETTER : self.letter,
+        DIGIT : self.digit,
+        UNKNOWN : self.unknown,
+        EOF : self.eof
+        }
+
     def switch_func(self, x): # 토큰 분류용 switch 결과 반환 함수
         return {
             '{' : LEFT_BRACE,
@@ -138,7 +133,7 @@ class Token(object):
         self.nextChar = self.program[self.index]
         self.index += 1
         if ( self.nextChar!= "$"):
-            if (self.nextChar.isalpha()):
+            if (self.nextChar.isalpha() or self.nextChar == "_"):
                 self.charClass = LETTER
             elif (self.nextChar.isdigit()):
                 self.charClass = DIGIT
@@ -157,7 +152,14 @@ class Token(object):
         while(self.charClass == LETTER or self.charClass == DIGIT):
             self.addChar()
             self.getChar()
-        self.nextToken = IDENT
+        if (self.token_string == "variable"):
+            self.nextToken = VARIABLE
+        elif (self.token_string == "call"):
+            self.nextToken = CALL
+        elif (self.token_string == "print_ari"):
+            self.nextToken = PRINT_ARI
+        else:
+            self.nextToken = IDENT
 
     def digit(self):
         self.addChar()
@@ -181,3 +183,126 @@ class Token(object):
         self.getNonBlank()
         self.switch_lexical_case[self.charClass]()
         return self.nextToken, self.token_string
+
+
+class Grammar(object):
+    def __init__(self):
+        self.func_anly = {}
+        self.lineidx = 0
+    
+    def func_var(self, vars): # 선언 변수 추가
+        self.func_anly[self.lineidx] = vars  # [VARIABLE, x, y, z]
+        self.lineidx +=1
+
+    def func_call(self, funcname):
+        self.func_anly[self.lineidx] = funcname  # [CALL, func1]
+        self.lineidx +=1
+
+    def func_printari(self):
+        self.func_anly[self.lineidx] = [PRINT_ARI] # [PRINT_ARI]
+        self.lineidx +=1
+
+    def func_ref(self, x):
+        self.func_anly[self.lineidx] = x # [REF, x]
+        self.lineidx +=1
+        
+    def nameset(self, name): # function 이름 정보 추가
+        self.func_anly["name"] = name
+
+    def getline(self, idx): # 실행 중 사용
+        return (self.func_anly[idx])
+
+    def newfunc(self):
+        self.func_anly.clear()
+        self.lineidx = 0
+
+# 파서
+class Parser(object):
+    def __init__(self, program):
+        self.T = Token(program)
+        self.Glist = []
+        self.G = Grammar()
+        self._stmt = ""  # stmt 내용 저장
+
+    def start(self): # <start> -> <funcs>
+        self.funcs()
+        print(len(self.Glist))
+        print(self.Glist[0].func_anly)   #######################
+        print(self.Glist[1].func_anly)
+        print(self.Glist[2].func_anly)
+
+    def funcs(self): # <funcs> -> <func> | <func><funcs>
+        _G = Grammar()
+        self.func(_G)
+        if (self.T.nextToken == IDENT):
+            self.funcs()
+        self.Glist.append(_G)
+
+    def func(self, G):
+        G.nameset(self.T.token_string)
+        self.T.lexical()
+        if (self.T.nextToken == LEFT_BRACE): # <func> -> <ident> {<func_body>}
+            self.T.lexical()
+            self.funcbody(G)
+            if (self.T.nextToken == RIGHT_BRACE):
+                self.T.lexical()
+        
+    def funcbody(self, G): # <func_body> -> <var_defs><stmts> | <stmts> 
+        if(self.T.nextToken == VARIABLE):
+            self.var_defs(G)
+        self.stmts(G)
+
+    def var_defs(self, G): # <var_defs> -> <var_def> | <var_def><var_defs>
+        self.var_def(G)
+        if (self.T.nextToken == VARIABLE):
+            self.var_defs(G)
+    
+    def var_def(self, G): # <var_def> -> variable <var_list><semi>
+        _varlist = [VARIABLE]
+        self.T.lexical()
+        self.var_list(_varlist, G)
+        if (self.T.nextToken == SEMI):
+            self.T.lexical()
+        G.func_var(_varlist)
+
+    def var_list(self, _varlist, G): # <var_list> -> <ident> | <ident><comma><var_list>
+        if (self.T.nextToken == IDENT): # <ident>
+            _varlist.append(self.T.token_string)
+            self.T.lexical()
+        
+        if (self.T.nextToken == COMMA):
+            self.T.lexical()
+            self.var_list(_varlist, G)
+
+    
+
+    def stmts(self, G): # <stmts> -> <stmt> | <stmt><stmts>
+        self.stmt(G)
+        if (self.T.nextToken == CALL or self.T.nextToken == PRINT_ARI or self.T.nextToken == IDENT):
+            self.stmts(G)
+        
+
+    def stmt(self, G): # <stmt> -> call <ident><semi> | print_ari <semi> | <ident><semi>
+        if (self.T.nextToken == CALL):
+            self.T.lexical()
+            if (self.T.nextToken == IDENT): # <ident>
+                G.func_call([CALL, self.T.token_string])
+                self.T.lexical()
+            if (self.T.nextToken == SEMI):
+                self.T.lexical()
+        elif (self.T.nextToken == PRINT_ARI):
+            self.T.lexical()
+            G.func_printari()
+            if (self.T.nextToken == SEMI):
+                self.T.lexical()
+        else:
+            G.func_ref([REF, self.T.token_string])
+            self.T.lexical()
+            if (self.T.nextToken == SEMI):
+                self.T.lexical()
+
+# run program
+class runprogram(object):
+    def __init__(self, Glist):
+        self.Glist = Glist
+        self.RTstack = RTstack()
