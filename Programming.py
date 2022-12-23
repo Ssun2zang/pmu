@@ -218,6 +218,7 @@ class Grammar(object):
     def __init__(self):
         self.func_anly = {}
         self.lineidx = 0
+        self.varlist = []
     
     def func_var(self, vars): # 선언 변수 추가
         self.func_anly[self.lineidx] = vars  # [VARIABLE, x, y, z]
@@ -244,6 +245,7 @@ class Grammar(object):
     def newfunc(self):
         self.func_anly.clear()
         self.lineidx = 0
+        self.varlist.clear()
 
 # 파서
 class Parser(object):
@@ -252,6 +254,9 @@ class Parser(object):
         self.Glist = []
         self.G = Grammar()
         self._stmt = ""  # stmt 내용 저장
+        self.fnamelist = []
+        self.varnamelist = []
+        self.reserved_word = ["variable", "call", "print_ari"]
 
     def start(self): # <start> -> <funcs>
         self.funcs()
@@ -264,13 +269,30 @@ class Parser(object):
         self.Glist.append(_G)
 
     def func(self, G):
-        G.nameset(self.T.token_string)
+        fname = self.T.token_string
+        if fname in self.fnamelist:  # 함수 정의할 때 이름 확인 (동일 이름 함수)
+            print("Duplicate delcaration of the function name: "+ fname)
+            quit()
+        if fname in self.varnamelist:  # 함수 정의할 때 이름 확인 (동일 이름 변수)
+            print("Duplicate declaration of the identifier or the function name : "+ fname)
+            quit()
+        if fname in self.reserved_word: # 함수 이름이 예약어와 같은지 확인
+            print("Unable to save name as reserved word: "+fname)
+            quit()
+        G.nameset(fname)  
+        self.fnamelist.append(fname)
         self.T.lexical()
         if (self.T.nextToken == LEFT_BRACE): # <func> -> <ident> {<func_body>}
             self.T.lexical()
             self.funcbody(G)
             if (self.T.nextToken == RIGHT_BRACE):
                 self.T.lexical()
+            else:
+                print("Syntax Error.")
+                quit()
+        else:
+            print("Syntax Error.")
+            quit()
         
     def funcbody(self, G): # <func_body> -> <var_defs><stmts> | <stmts> 
         if(self.T.nextToken == VARIABLE):
@@ -288,12 +310,31 @@ class Parser(object):
         self.var_list(_varlist, G)
         if (self.T.nextToken == SEMI):
             self.T.lexical()
+        else:
+            print("Syntax Error.")
+            quit()
         G.func_var(_varlist)
 
     def var_list(self, _varlist, G): # <var_list> -> <ident> | <ident><comma><var_list>
         if (self.T.nextToken == IDENT): # <ident>
-            _varlist.append(self.T.token_string)
-            self.T.lexical()
+            if self.T.token_string in self.fnamelist:  # 변수 정의할 때 이름 확인 (동일 이름 함수)
+                print("Duplicate declaration of the identifier or the function name : "+ self.T.token_string)
+                print("")
+                quit()
+            if self.T.token_string in self.reserved_word: # 변수 이름이 예약어와 같은지 확인
+                print("Unable to save name as reserved word: "+self.T.token_string)
+                quit()
+
+            if self.T.token_string in G.varlist: # 하나의 함수 내 같은 이름 지역 변수 확인
+                print("Duplication declaration of the identifier: "+ self.T.token_string)
+                print("")
+                self.T.lexical()
+            else:
+                G.varlist.append(self.T.token_string)
+                self.varnamelist.append(self.T.token_string)
+                _varlist.append(self.T.token_string)
+                self.T.lexical()
+        
         
         if (self.T.nextToken == COMMA):
             self.T.lexical()
@@ -320,11 +361,14 @@ class Parser(object):
             G.func_printari()
             if (self.T.nextToken == SEMI):
                 self.T.lexical()
-        else:
+        elif (self.T.nextToken == IDENT):
             G.func_ref([REF, self.T.token_string])
             self.T.lexical()
             if (self.T.nextToken == SEMI):
                 self.T.lexical()
+        else:
+            print("Syntax Error.")
+            quit()
 
 # run program
 class runprogram(object):
@@ -336,10 +380,15 @@ class runprogram(object):
         print("")
         self.RTstack.funcmain()
         now_func = {}
+        find = False
         for func in self.Glist:
             if func.func_anly['name']=='main':
                 now_func = func.func_anly
+                find = True
                 break
+        if (find == False):  # main함수가 정의되지 않은경우 오류
+            print("No starting function.")
+            quit()
         for i in range(0, len(now_func)-1):
             keyword = now_func[i][0]
             if (keyword == VARIABLE):
@@ -356,9 +405,15 @@ class runprogram(object):
 
     def funccall(self, fname, line):
         self.RTstack.callf(fname, line)
+        find = False
         for func in self.Glist:
             if func.func_anly['name']==fname:
+                find = True
                 now_func = func.func_anly
+                break
+        if (find == False):  # 정의되지 않은 함수 호출
+            print("Call to undefined function: "+ fname)
+            quit()
         for i in range(0, len(now_func)-1):
             keyword = now_func[i][0]
             if (keyword == VARIABLE):
