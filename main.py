@@ -8,6 +8,7 @@ def main():
     P.T.getChar()
     P.T.lexical()
     P.prog()
+    P.G.printST()
 
 if __name__ == "__main__":
     main()

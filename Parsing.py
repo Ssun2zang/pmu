@@ -29,6 +29,14 @@ T_T = 36
 F_T = 37
 
 
+class AR(object):
+    def __init__(self, RA, DL, *LV):
+        self.ARI = []
+        self.ARI.append(RA, DL)
+        for vari in LV:
+            self.ARI.append(vari)
+
+
 
 # 어휘 분석용 클래스
 class Token(object):
@@ -183,6 +191,9 @@ class Grammar(object):
             'OP' : 0,
             'ERROR' : "(OK)",
         }
+
+    def printST(self):
+        print(self.symbol_table)
 
     
 class Parser(object):
