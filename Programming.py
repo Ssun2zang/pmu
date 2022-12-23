@@ -111,7 +111,7 @@ class RTstack(object):
 
 
     def endAR(self):
-        self.top = self.EP-1
+        self.top = self.EP
         end = self.top-self.EP
         del self.fnamelist[self.EP]
         self.EP = self.stack[self.EP+1]
