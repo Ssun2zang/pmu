@@ -12,15 +12,95 @@ LEFT_BRACE = 12
 RIGHT_BRACE = 13
 SEMI = 14
 COMMA = 15
-EOF = 15
+EOF = 16
 ERROR = -1
 
-class AR(object):
-    def __init__(self, RA, DL, *LV):
-        self.ARI = []
-        self.ARI.append(RA, DL)
+# 에약어
+
+PRINT_ARI = 30
+CALL = 31
+VARIABLE = 32
+
+
+
+
+# class AR(object):
+#     def __init__(self, Fname, RA, DL):
+#         self.ARI = []
+#         self.Fname = Fname
+#         self.ARI.append(RA)
+#         self.ARI.append(DL)
+#         self.top = 1
+
+#     def addvar(self, *LV):
+#         for vari in LV:
+#             self.ARI.append(vari)
+#             self.top +=1
+
+#     def printari(self):
+#         print(self.Fname+":", end = " ")
+#         for i in range(1, len(self.top)-1):
+#             print("Local variable: " + self.ARI[-i])
+#         if (self.Fname != "main"):
+#             print("Dynamic Link: " + self.ARI[1])
+#             print("Return Address: " + self.ARI[0][0] + ": " + self.ARI[0][1])
+
+#     def getfname(self):
+#         return self.Fname
+    
+
+class RTstack(object):
+    def __init__(self):
+        self.stack=[]
+        self.fnamelist = {}
+        self.EP = 0
+        self.line = 0
+        self.top = 0
+
+    def AR(self, Fname, RA, DL):
+        self.stack.append(RA)
+        self.stack.append(DL)
+        self.EP = self.top
+        self.top+=2
+        self.fnamelist[self.EP] = Fname
+
+    def addvar(self, *LV):
         for vari in LV:
-            self.ARI.append(vari)
+            self.stack.append(vari)
+            self.top +=1
+
+    def printari(self):
+        rslist = self.fnamelist.keys()
+        rslist.sort()
+        start = rslist.pop()
+        end = self.top
+        while (rslist):
+            for i in reversed(range(start, end+1)):
+                if (i-start == 1):
+                    print("Dynamic Link: " + self.stack[i])
+                elif (i == start):
+                    print("Return Address: " + self.stack[i])
+                else:
+                    print("Local variable: " + self.stack[i])
+            end = start -1
+            start = rslist.pop()
+
+    def callf(self, fname):
+        ARI = self.AR(fname, [self.EP, self.line], self.EP)
+        EP +=1
+        self.stack.append(ARI)
+
+    def printref(self, ident):
+        temp_s = self.EP
+        temp_e = self.EP + self.stack[self.EP]
+        while (temp_s>0):
+            pass
+            # for i in range 
+
+        pass
+
+    def readf(self):
+        pass
 
 
 
@@ -36,13 +116,6 @@ class Token(object):
         self.length = 0
         self.token = 0
 
-        self.switch_lexical_case = {  # 문자 유형에 따른 함수 매칭
-        LETTER : self.letter,
-        DIGIT : self.digit,
-        UNKNOWN : self.unknown,
-        EOF : self.eof
-        }
-
     def switch_func(self, x): # 토큰 분류용 switch 결과 반환 함수
         return {
             '{' : LEFT_BRACE,
@@ -55,10 +128,6 @@ class Token(object):
     def lookup(self, ch): # 연산자, 괄호 조사 후 그 토큰 반환 함수
         self.addChar()
         self.nextToken = self.switch_func(ch)
-        if (self.nextToken == ASSIGN_OP): # ':=' 지정
-            self.nextChar = self.program[self.index]
-            self.index += 1
-            self.addChar()
         return self.nextToken
 
     def addChar(self):
