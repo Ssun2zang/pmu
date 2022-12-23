@@ -72,7 +72,6 @@ class RTstack(object):
                 elif (i == start):
                     print("Return Address: " + self.fnamelist[self.stack[i][0]]+ ": "+str(self.stack[i][1]))
                 else:
-                    # print(i)
                     print("Local variable: " + str(self.stack[i]))
                 print("\t", end = " ")
             print(" ")
@@ -84,24 +83,41 @@ class RTstack(object):
         print(" ")
 
 
-    def callf(self, fname):
-        ARI = self.AR(fname, [self.EP, self.line], self.EP)
+    def callf(self, fname, line):
+        ARI = self.AR(fname, [self.EP, line], self.EP)
 
     def printref(self, ident):
-        temp_s = self.EP
-        temp_e = self.EP + self.stack[self.EP]
-        while (temp_s>0):
-            pass
-            # for i in range 
+        rslist = list(self.fnamelist.keys())
+        rslist.sort()
+        end = self.top
+        loop = True
+        linkcount = -1
+        localoffset = 0
+        while (rslist and loop):
+            linkcount+=1
+            start = rslist.pop()
+            for i in range(start, end):
+                
+                if self.stack[i] == ident:
+                    loop = False
+                    localoffset = i-start
+                    break
+            end = start
+        if (not loop):
+            print(self.fnamelist[self.EP]+":"+ident+ " => " + str(linkcount) + ", " + str(localoffset))
+            print("")
 
-        pass
 
-    def readf(self):
-        pass
+
 
     def endAR(self):
-        for _ in range(0, self.top-self.EP):
+        self.top = self.EP-1
+        end = self.top-self.EP
+        del self.fnamelist[self.EP]
+        self.EP = self.stack[self.EP+1]
+        for _ in range(0, end):
             self.stack.pop()
+
 
 
 
@@ -239,10 +255,6 @@ class Parser(object):
 
     def start(self): # <start> -> <funcs>
         self.funcs()
-        print(len(self.Glist))
-        print(self.Glist[0].func_anly)   #######################
-        print(self.Glist[1].func_anly)
-        print(self.Glist[2].func_anly)
 
     def funcs(self): # <funcs> -> <func> | <func><funcs>
         _G = Grammar()
@@ -320,30 +332,30 @@ class runprogram(object):
         self.Glist = Glist
         self.RTstack = RTstack()
     def run(self):
+        print("Syntax O.K.")
+        print("")
         self.RTstack.funcmain()
         now_func = {}
         for func in self.Glist:
             if func.func_anly['name']=='main':
                 now_func = func.func_anly
-                print(func.func_anly, "냐냐?")
                 break
         for i in range(0, len(now_func)-1):
             keyword = now_func[i][0]
-            print(keyword, "키워드")
             if (keyword == VARIABLE):
                 for j in range(1, len(now_func[i])):
                     self.RTstack.addvar(now_func[i][j])
             elif (keyword == CALL):
-                self.funccall(now_func[i][1])
-                pass
+                self.funccall(now_func[i][1], i)
             elif (keyword == PRINT_ARI):
-                # self.RTstack.printari()
+                self.RTstack.printari()
                 pass
             else:
+                self.RTstack.printref(now_func[i][1])
                 pass
 
-    def funccall(self, fname):
-        self.RTstack.callf(fname)
+    def funccall(self, fname, line):
+        self.RTstack.callf(fname, line)
         for func in self.Glist:
             if func.func_anly['name']==fname:
                 now_func = func.func_anly
@@ -353,12 +365,13 @@ class runprogram(object):
                 for j in range(1, len(now_func[i])):
                     self.RTstack.addvar(now_func[i][j])
             elif (keyword == CALL):
-                self.funccall(now_func[i][1])
+                self.funccall(now_func[i][1], i)
                 pass
             elif (keyword == PRINT_ARI):
                 self.RTstack.printari()
                 pass
             else:
+                self.RTstack.printref(now_func[i][1])
                 pass # 호출
         self.RTstack.endAR()
 
