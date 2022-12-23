@@ -9,5 +9,8 @@ def main():
     P.T.lexical()
     P.start()
 
+    Run = runprogram(P.Glist)
+    Run.run()
+
 if __name__ == "__main__":
     main()

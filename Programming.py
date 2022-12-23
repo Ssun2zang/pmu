@@ -45,6 +45,9 @@ class RTstack(object):
         self.line = 0
         self.top = 0
 
+    def funcmain(self):
+        self.fnamelist[0] = "main"
+
     def AR(self, Fname, RA, DL):
         self.stack.append(RA)
         self.stack.append(DL)
@@ -52,31 +55,37 @@ class RTstack(object):
         self.top+=2
         self.fnamelist[self.EP] = Fname
 
-    def addvar(self, *LV):
-        for vari in LV:
-            self.stack.append(vari)
-            self.top +=1
+    def addvar(self, vari):
+        self.stack.append(vari)
+        self.top +=1
 
     def printari(self):
-        rslist = self.fnamelist.keys()
+        rslist = list(self.fnamelist.keys())
         rslist.sort()
         start = rslist.pop()
         end = self.top
         while (rslist):
-            for i in reversed(range(start, end+1)):
+            print(self.fnamelist[start], ": ", end="")
+            for i in reversed(range(start, end)):
                 if (i-start == 1):
-                    print("Dynamic Link: " + self.stack[i])
+                    print("Dynamic Link: " + str(self.stack[i]))
                 elif (i == start):
-                    print("Return Address: " + self.stack[i])
+                    print("Return Address: " + self.fnamelist[self.stack[i][0]]+ ": "+str(self.stack[i][1]))
                 else:
-                    print("Local variable: " + self.stack[i])
-            end = start -1
+                    # print(i)
+                    print("Local variable: " + str(self.stack[i]))
+                print("\t", end = " ")
+            print(" ")
+            end = start
             start = rslist.pop()
+        print(self.fnamelist[start], ": ", end="")
+        for i in reversed(range(start, end)):
+            print("\tLocal variable: " + str(self.stack[i]))
+        print(" ")
+
 
     def callf(self, fname):
         ARI = self.AR(fname, [self.EP, self.line], self.EP)
-        EP +=1
-        self.stack.append(ARI)
 
     def printref(self, ident):
         temp_s = self.EP
@@ -89,6 +98,10 @@ class RTstack(object):
 
     def readf(self):
         pass
+
+    def endAR(self):
+        for _ in range(0, self.top-self.EP):
+            self.stack.pop()
 
 
 
@@ -306,3 +319,47 @@ class runprogram(object):
     def __init__(self, Glist):
         self.Glist = Glist
         self.RTstack = RTstack()
+    def run(self):
+        self.RTstack.funcmain()
+        now_func = {}
+        for func in self.Glist:
+            if func.func_anly['name']=='main':
+                now_func = func.func_anly
+                print(func.func_anly, "냐냐?")
+                break
+        for i in range(0, len(now_func)-1):
+            keyword = now_func[i][0]
+            print(keyword, "키워드")
+            if (keyword == VARIABLE):
+                for j in range(1, len(now_func[i])):
+                    self.RTstack.addvar(now_func[i][j])
+            elif (keyword == CALL):
+                self.funccall(now_func[i][1])
+                pass
+            elif (keyword == PRINT_ARI):
+                # self.RTstack.printari()
+                pass
+            else:
+                pass
+
+    def funccall(self, fname):
+        self.RTstack.callf(fname)
+        for func in self.Glist:
+            if func.func_anly['name']==fname:
+                now_func = func.func_anly
+        for i in range(0, len(now_func)-1):
+            keyword = now_func[i][0]
+            if (keyword == VARIABLE):
+                for j in range(1, len(now_func[i])):
+                    self.RTstack.addvar(now_func[i][j])
+            elif (keyword == CALL):
+                self.funccall(now_func[i][1])
+                pass
+            elif (keyword == PRINT_ARI):
+                self.RTstack.printari()
+                pass
+            else:
+                pass # 호출
+        self.RTstack.endAR()
+
+        pass
